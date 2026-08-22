@@ -1,0 +1,4 @@
+{
+  "_readme": "Paths (or their subdirectories) listed here may be deleted even though deny-remove blocks deletion everywhere else. Empty by default. Only a human should edit this file - see hooks/deny-allowlist-edit.",
+  "allowed_paths": []
+}

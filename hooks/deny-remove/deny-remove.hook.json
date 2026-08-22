@@ -1,0 +1,6 @@
+{
+    "event": "PreToolUse",
+    "matcher": "Bash",
+    "runtime": "python3",
+    "script": "deny-remove.py"
+}

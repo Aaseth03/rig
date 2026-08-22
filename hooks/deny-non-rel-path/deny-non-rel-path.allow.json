@@ -1,0 +1,4 @@
+{
+  "_readme": "Paths (or their subdirectories) listed here are allowed through deny-non-rel-path even though they are outside the project root. Empty by default. Only a human should edit this file - see hooks/deny-allowlist-edit.",
+  "allowed_paths": []
+}

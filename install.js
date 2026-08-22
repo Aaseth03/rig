@@ -82,6 +82,12 @@ function copyDir(src, dest, { force, dryRun }) {
       continue;
     }
 
+    if (entry.name.endsWith('.hook.json')) {
+      // Descriptor only — install.js reads it directly from the repo to merge into
+      // settings.json, so it has no reason to also live in the target .claude folder.
+      continue;
+    }
+
     const exists = fs.existsSync(destPath);
     if (exists && !force) {
       stats.skipped += 1;
@@ -99,6 +105,68 @@ function copyDir(src, dest, { force, dryRun }) {
   }
 
   return stats;
+}
+
+function findHookDescriptors(dir, baseDir) {
+  let results = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results = results.concat(findHookDescriptors(entryPath, baseDir));
+    } else if (entry.name.endsWith('.hook.json')) {
+      results.push(entryPath);
+    }
+  }
+  return results;
+}
+
+function mergeHookDescriptors(hooksSrcDir, targetRootDir, { dryRun }) {
+  if (!fs.existsSync(hooksSrcDir)) return { merged: 0 };
+
+  const descriptorPaths = findHookDescriptors(hooksSrcDir, hooksSrcDir);
+  if (descriptorPaths.length === 0) return { merged: 0 };
+
+  const settingsPath = path.join(targetRootDir, 'settings.json');
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  }
+  settings.hooks = settings.hooks || {};
+
+  let merged = 0;
+  for (const descriptorPath of descriptorPaths) {
+    const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+    const { event, matcher, runtime } = descriptor;
+    const scriptRelPath = path
+      .join(path.relative(hooksSrcDir, path.dirname(descriptorPath)), descriptor.script)
+      .split(path.sep)
+      .join('/');
+    const command = `${runtime || 'python3'} "$CLAUDE_PROJECT_DIR/.claude/hooks/${scriptRelPath}"`;
+    settings.hooks[event] = settings.hooks[event] || [];
+
+    const alreadyPresent = settings.hooks[event].some(
+      (entry) => entry.matcher === matcher && (entry.hooks || []).some((h) => h.command === command)
+    );
+    if (alreadyPresent) continue;
+
+    let group = settings.hooks[event].find((entry) => entry.matcher === matcher);
+    if (!group) {
+      group = { matcher, hooks: [] };
+      settings.hooks[event].push(group);
+    }
+    group.hooks.push({ type: 'command', command });
+    merged += 1;
+  }
+
+  if (merged > 0) {
+    if (dryRun) {
+      console.log(`  would merge ${merged} hook descriptor(s) into ${path.relative(process.cwd(), settingsPath)}`);
+    } else {
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+      console.log(`  merged ${merged} hook descriptor(s) into ${path.relative(process.cwd(), settingsPath)}`);
+    }
+  }
+  return { merged };
 }
 
 function main() {
@@ -159,6 +227,10 @@ Options:
       const { copied, skipped } = copyDir(srcDir, destDir, args);
       totalCopied += copied;
       totalSkipped += skipped;
+
+      if (category === 'hooks' && name === 'claude') {
+        mergeHookDescriptors(srcDir, targetRootDir, args);
+      }
     }
 
     console.log(`  -> ${totalCopied} file(s) ${args.dryRun ? 'would be copied' : 'copied'}, ${totalSkipped} skipped`);

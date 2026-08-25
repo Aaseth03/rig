@@ -1,6 +1,6 @@
 ---
 name: icm-architect
-description: Design any process, idea, problem, or body of knowledge into an ICM (Interpretable Context Methodology) workspace — folder structure as agent architecture — or restructure an existing folder, repo, or vault into one. Use when the user wants to (1) turn a recurring workflow into an agent-runnable folder pipeline, (2) organize scattered notes, files, or knowledge into a library one AI agent can walk, (3) map a team or company as connected context ("context map", "second brain", "team brain", "knowledge base for AI"), (4) audit or restructure an existing workspace to ICM conventions, or (5) says "make this an ICM", "ICM this", "build me a workspace", or "structure this for agents".
+description: Design any process, idea, problem, or body of knowledge into an ICM (Interpretable Context Methodology) workspace — folder structure as agent architecture — or restructure an existing folder, repo, or vault into one. Use when the user wants to (1) turn a recurring workflow into an agent-runnable folder pipeline, (2) organize scattered notes, files, or knowledge into a library one AI agent can walk, (3) map a team or company as connected context ("context map", "second brain", "team brain", "knowledge base for AI"), (4) audit a codebase or mixed folder into a walkable edit map (objects, processes, change-impact) so later agents can change it without slurping the tree, (5) audit or restructure an existing workspace to ICM conventions, or (6) says "make this an ICM", "ICM this", "map this repo", "audit this folder", "what would a change hit", "build me a workspace", or "structure this for agents".
 ---
 
 # ICM Architect
@@ -30,6 +30,7 @@ Every ICM, whatever its form, obeys these. When building or restructuring, enfor
 
 - **Building from a described process, idea, or problem** → Build mode.
 - **An existing folder, repo, or vault that needs ICM structure** → Restructure mode.
+- **A body of work later agents must edit** (code, markdown, or mixed) → System map form. Read [references/system-map.md](references/system-map.md) after picking the form.
 
 ## Build mode
 
@@ -52,6 +53,7 @@ Their pauses become stage boundaries. Their "I always check X before Y" become h
 | **Record library** | The unit is a record (person, client, session) that accumulates, not a run |
 | **Knowledge bundle** | The product is navigable knowledge itself (a brain, a wiki, a model of something) |
 | **Context map** | The subject is an organization — teams, processes, data, and the links between them |
+| **System map** | A folder later agents will edit — nouns, movements, and what a change hits. Method: [references/system-map.md](references/system-map.md) |
 
 Real workspaces mix forms (a record library whose records are mini knowledge bundles; a pipeline that emits into a record library). Compose freely — the invariants hold at every level, recursively.
 
@@ -90,6 +92,7 @@ Validate any ICM — new or restructured — by walking it cold, as an agent wit
 - Is any routing file carrying content payload? Move the payload to a shelf; leave a pointer.
 - Is any fact stored in two places? Pick one home; link from the other.
 - Token check: entry file + one contract + its inputs should land in roughly 2k–8k tokens.
+- System map only: can a cold agent answer *what is X* and *what else moves if I change X* from `map/CLAUDE.md` plus one card? Extra checks are in [references/system-map.md](references/system-map.md).
 
 If a step fails, fix the structure — not by explaining more, but by moving or splitting files until the walk works.
 
@@ -102,5 +105,6 @@ If a step fails, fix the structure — not by explaining more, but by moving or 
 ## References
 
 - [references/core.md](references/core.md) — the five design principles, the five-layer context hierarchy, naming conventions, token discipline. Read when writing contracts or when a structural call is contested.
-- [references/forms.md](references/forms.md) — the five forms in depth: skeleton trees, defining moves, failure modes. Read at step 2 of Build mode or step 2 of Restructure mode.
-- [assets/templates/](assets/templates/) — copyable starters: `CLAUDE.md`, workspace `CONTEXT.md`, `stage-CONTEXT.md`, `node.md`, `schema.md`, `questionnaire.md`.
+- [references/forms.md](references/forms.md) — the six forms in depth: skeletons, moves, failure modes. Read at step 2 of Build mode or step 2 of Restructure mode.
+- [references/system-map.md](references/system-map.md) — audit pipeline for the System map form. Read when that form is chosen.
+- [assets/templates/](assets/templates/) — copyable starters: `CLAUDE.md`, workspace `CONTEXT.md`, `stage-CONTEXT.md`, `node.md`, `object.md`, `process.md`, `schema.md`, `questionnaire.md`.

@@ -1,8 +1,8 @@
-# The Five Forms
+# The Six Forms
 
-One skeleton, five jobs. Every form obeys the ten invariants; what changes is what the repeating unit is and what the structure optimizes for. All five are drawn from production workspaces, not theory.
+One skeleton, six jobs. Every form obeys the ten invariants; what changes is what the repeating unit is and what the structure optimizes for. All six are drawn from production workspaces, not theory.
 
-Contents: Selection · 1 Pipeline · 2 Umbrella · 3 Record library · 4 Knowledge bundle · 5 Context map · Composing forms
+Contents: Selection · 1 Pipeline · 2 Umbrella · 3 Record library · 4 Knowledge bundle · 5 Context map · 6 System map · Composing forms
 
 ## Selection
 
@@ -15,6 +15,7 @@ Ask one question first: **what is the repeating unit of work?**
 | a record that accumulates (person, client, session) | Record library |
 | the knowledge itself (claims, notes, evidence) | Knowledge bundle |
 | an organization (teams, processes, data, handoffs) | Context map |
+| a folder later agents must edit (code, markdown, or mixed) | System map |
 
 ## 1. Pipeline — the production line
 
@@ -141,6 +142,33 @@ workspace/
 
 **Watch for:** schema mandating names the files stopped using (reconcile immediately); duplicate entry files drifting; instance data tangled into the reusable method (extract the blank starter kit early); node types multiplying past what anyone queries.
 
+## 6. System map — a body of work as an edit graph
+
+The subject is a tree someone will change: a repository, a markdown vault, or both. The map exists so a later agent can answer “what is this” and “what else moves” without slurping the tree. Nouns are object cards; verbs are process cards; `effects/` is only an index into those cards.
+
+```
+subject/
+├─ CLAUDE.md                 existing entry — add one row pointing at map/
+└─ map/
+   ├─ CLAUDE.md              catalog (generate AGENTS.md + routing.md)
+   ├─ CONTEXT.md             universes + name collisions
+   ├─ _meta/schema.md
+   ├─ _templates/            object.md, process.md
+   ├─ objects/               record library of nouns
+   ├─ processes/             real movements only
+   └─ effects/CONTEXT.md     if you change X, open these cards
+```
+
+**Defining moves:**
+- The subject tree remains authoritative. Cards cite `path:line` (code) or the owning file (markdown). Aspiration and dead types are `ghost`, not live.
+- Slices are gated: inventory → catalog → nouns → verbs → impact index → re-verify. Empty `processes/` / `effects/` folders are forbidden.
+- **Hits / Does not hit** is the waterfall. “Does not hit” names the obvious next noun that is the wrong one.
+- Compose with Record library (the cards) inside this form. Do not confuse this with Context map (an org) or Knowledge bundle (how something thinks).
+
+**Watch for:** copying behaviour into cards; mapping intent docs as live; two hand-edited entry files; marking `verified` without a citation.
+
+The audit pipeline, card sections, and walk test for this form: [system-map.md](system-map.md).
+
 ## Composing forms
 
 The forms nest, because the invariants are recursive:
@@ -149,5 +177,6 @@ The forms nest, because the invariants are recursive:
 - A **pipeline** that emits into a **record library** (each run becomes a session record with the pipeline folded inside it).
 - An **umbrella** over pipelines that all draw on one **knowledge bundle** as their factory layer.
 - A **context map** whose per-team folders each grow a small **pipeline** for their pilot process.
+- An **umbrella** or repo whose `developer-docs/` (or vault root) hosts a **system map** of the subject beside a setup **pipeline**.
 
 When composing, keep one rule absolute: each level has its own small catalog, and no level's catalog describes the internals of the level below — it links down and stops.

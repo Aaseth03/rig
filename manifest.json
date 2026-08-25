@@ -13,14 +13,9 @@
     "github-copilot": {
       "dir": ".github",
       "mappings": {
-        "agents": "copilot-agents",
-        "hooks": "workflows"
-      }
-    },
-    "cursor": {
-      "dir": ".cursor",
-      "mappings": {
-        "rules": "rules"
+        "agents": "agents",
+        "skills": "skills",
+        "hooks": "hooks"
       }
     }
   }

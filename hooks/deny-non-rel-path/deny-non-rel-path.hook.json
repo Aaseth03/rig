@@ -2,5 +2,6 @@
     "event": "PreToolUse",
     "matcher": "Read|Write|Edit|NotebookEdit|Glob|Grep|Bash",
     "runtime": "python3",
-    "script": "deny-non-rel-path.py"
+    "script": "deny-non-rel-path.py",
+    "targets": ["claude"]
 }

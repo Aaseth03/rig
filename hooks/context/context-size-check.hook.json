@@ -2,5 +2,6 @@
   "event": "PostToolUse",
   "matcher": "Write|Edit",
   "runtime": "python3",
-  "script": "context-size-check.py"
+  "script": "context-size-check.py",
+  "targets": ["claude"]
 }

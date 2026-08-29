@@ -2,5 +2,6 @@
     "event": "PreToolUse",
     "matcher": "Write|Edit|NotebookEdit|Bash",
     "runtime": "python3",
-    "script": "deny-allowlist-edit.py"
+    "script": "deny-allowlist-edit.py",
+    "targets": ["claude"]
 }

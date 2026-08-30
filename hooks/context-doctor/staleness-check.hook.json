@@ -1,0 +1,7 @@
+{
+  "event": "PostToolUse",
+  "matcher": "Write|Edit",
+  "runtime": "python3",
+  "script": "staleness-check.py",
+  "targets": ["claude"]
+}

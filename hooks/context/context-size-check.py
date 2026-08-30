@@ -3,9 +3,9 @@
 PostToolUse hook: flags oversized CONTEXT.md files after a Write/Edit.
 
 Reads the Claude Code hook JSON payload from stdin. If the tool just wrote or
-edited a file named CONTEXT.md (any case) and that file is now over the line
-threshold, its directory is upserted into a project-root log file so a later
-context-doctor pass can find and split/compress it.
+edited a file anywhere under a `.context/` directory and that file is now
+over the line threshold, its directory is upserted into a project-root log
+file so a later context-doctor pass can find and split/compress it.
 """
 
 import json
@@ -38,6 +38,14 @@ def resolve_file_path(payload):
         cwd = payload.get("cwd") or os.getcwd()
         file_path = os.path.join(cwd, file_path)
     return os.path.normpath(file_path)
+
+
+def is_under_context_dir(file_path, project_root):
+    try:
+        rel_path = os.path.relpath(file_path, project_root)
+    except ValueError:
+        return False
+    return ".context" in rel_path.split(os.sep)[:-1]
 
 
 def count_lines(file_path):
@@ -84,14 +92,17 @@ def main():
         return
 
     file_path = resolve_file_path(payload)
-    if not file_path or os.path.basename(file_path).lower() != "context.md":
+    if not file_path:
+        return
+
+    project_root = payload.get("cwd") or os.getcwd()
+    if not is_under_context_dir(file_path, project_root):
         return
 
     line_count = count_lines(file_path)
     if line_count is None:
         return
 
-    project_root = payload.get("cwd") or os.getcwd()
     log_path = os.path.join(project_root, LOG_FILENAME)
     rel_path = os.path.relpath(file_path, project_root)
 

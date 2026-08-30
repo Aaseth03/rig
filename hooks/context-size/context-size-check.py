@@ -4,8 +4,10 @@ PostToolUse hook: flags oversized CONTEXT.md files after a Write/Edit.
 
 Reads the Claude Code hook JSON payload from stdin. If the tool just wrote or
 edited a file anywhere under a `.context/` directory and that file is now
-over the line threshold, its directory is upserted into a project-root log
-file so a later context-doctor pass can find and split/compress it.
+over the line threshold, its path is upserted into a log file under
+`.context/logs/` so a later context-doctor pass can find and split/compress
+it. Files under `.context/logs/` are themselves excluded from this check -
+a log growing past the threshold isn't a card that needs splitting.
 """
 
 import json
@@ -14,7 +16,7 @@ import sys
 from datetime import date
 
 LINE_THRESHOLD = 300
-LOG_FILENAME = "CONTEXT_SIZE_LOG.md"
+LOG_RELATIVE_PATH = os.path.join(".context", "logs", "CONTEXT_SIZE_LOG.md")
 LOG_HEADER = (
     "# Context File Size Log\n\n"
     "Files below are over {threshold} lines and need review by the "
@@ -48,6 +50,15 @@ def is_under_context_dir(file_path, project_root):
     return ".context" in rel_path.split(os.sep)[:-1]
 
 
+def is_under_logs_dir(file_path, project_root):
+    try:
+        rel_path = os.path.relpath(file_path, project_root)
+    except ValueError:
+        return False
+    parts = rel_path.split(os.sep)
+    return len(parts) > 2 and parts[0] == ".context" and parts[1] == "logs"
+
+
 def count_lines(file_path):
     try:
         with open(file_path, "r", encoding="utf-8", errors="replace") as f:
@@ -76,6 +87,7 @@ def parse_log_entries(log_path):
 
 
 def write_log(log_path, entries):
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, "w", encoding="utf-8") as f:
         f.write(LOG_HEADER)
         for path_part in sorted(entries):
@@ -98,12 +110,14 @@ def main():
     project_root = payload.get("cwd") or os.getcwd()
     if not is_under_context_dir(file_path, project_root):
         return
+    if is_under_logs_dir(file_path, project_root):
+        return
 
     line_count = count_lines(file_path)
     if line_count is None:
         return
 
-    log_path = os.path.join(project_root, LOG_FILENAME)
+    log_path = os.path.join(project_root, LOG_RELATIVE_PATH)
     rel_path = os.path.relpath(file_path, project_root)
 
     entries = parse_log_entries(log_path)

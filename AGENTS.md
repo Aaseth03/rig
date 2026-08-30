@@ -25,4 +25,5 @@ coding assistants, installed into other project repos via `install.js`.
 - **Add a new install target platform** → add an entry to `manifest.json` under `targets`, see [.context/objects/manifest.md](.context/objects/manifest.md) (or [README.md](README.md))
 - **Install this repo into a project** → `node install.js --target-dir=<path>`, see [.context/processes/install.md](.context/processes/install.md) (or [README.md](README.md) for flags)
 - **"What breaks if I change X?"** → [.context/effects/CONTEXT.md](.context/effects/CONTEXT.md)
+- **What context needs refreshing after I change X?** → [.context/effects/UPKEEP.md](.context/effects/UPKEEP.md)
 - **Why was a past decision made?** → [.context/decisions/](.context/decisions/)

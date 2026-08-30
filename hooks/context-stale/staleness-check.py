@@ -5,10 +5,10 @@ PostToolUse hook: flags .context/ cards as stale after a Write/Edit.
 Reads the Claude Code hook JSON payload from stdin. Parses
 `.context/effects/UPKEEP.md`'s write-back table (source pattern -> card to
 refresh). If the tool just wrote or edited a file matching one of those
-source patterns, the mapped card is upserted into a project-root log file
-so a later context-doctor pass can re-verify it. If the tool just wrote or
-edited one of the mapped cards itself, any pending entry naming it is
-cleared - it was just refreshed.
+source patterns, the mapped card is upserted into a log file under
+`.context/logs/` so a later context-doctor pass can re-verify it. If the
+tool just wrote or edited one of the mapped cards itself, any pending entry
+naming it is cleared - it was just refreshed.
 """
 
 import fnmatch
@@ -18,7 +18,7 @@ import re
 import sys
 from datetime import date
 
-LOG_FILENAME = "CONTEXT_STALE_LOG.md"
+LOG_RELATIVE_PATH = os.path.join(".context", "logs", "CONTEXT_STALE_LOG.md")
 UPKEEP_REL_PATH = os.path.join(".context", "effects", "UPKEEP.md")
 LOG_HEADER = (
     "# Context Staleness Log\n\n"
@@ -117,6 +117,7 @@ def parse_log_entries(log_path):
 
 
 def write_log(log_path, entries):
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, "w", encoding="utf-8") as f:
         f.write(LOG_HEADER)
         for card in sorted(entries):
@@ -143,7 +144,7 @@ def main():
         return
 
     rel_path = os.path.relpath(file_path, project_root)
-    log_path = os.path.join(project_root, LOG_FILENAME)
+    log_path = os.path.join(project_root, LOG_RELATIVE_PATH)
     entries = parse_log_entries(log_path)
     card_paths = {card for _, card in rows}
     changed = False

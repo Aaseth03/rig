@@ -65,29 +65,31 @@ function loadManifest() {
   return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 }
 
-function copyDir(src, dest, { force, dryRun }) {
+function copyDir(src, dest, { force, dryRun, transformFilename }) {
   if (!fs.existsSync(src)) return { copied: 0, skipped: 0 };
   const stats = { copied: 0, skipped: 0 };
+  const transform = transformFilename || ((name) => name);
 
   fs.mkdirSync(dest, { recursive: true });
 
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      const sub = copyDir(srcPath, destPath, { force, dryRun });
+      const destPath = path.join(dest, entry.name);
+      const sub = copyDir(srcPath, destPath, { force, dryRun, transformFilename });
       stats.copied += sub.copied;
       stats.skipped += sub.skipped;
       continue;
     }
 
     if (entry.name.endsWith('.hook.json')) {
-      // Descriptor only — install.js reads it directly from the repo to merge into
-      // settings.json, so it has no reason to also live in the target .claude folder.
+      // Descriptor only — install.js reads it directly from the repo to merge/emit
+      // hook config, so it has no reason to also live in the target folder.
       continue;
     }
 
+    const destPath = path.join(dest, transform(entry.name));
     const exists = fs.existsSync(destPath);
     if (exists && !force) {
       stats.skipped += 1;
@@ -120,11 +122,26 @@ function findHookDescriptors(dir, baseDir) {
   return results;
 }
 
-function mergeHookDescriptors(hooksSrcDir, targetRootDir, { dryRun }) {
-  if (!fs.existsSync(hooksSrcDir)) return { merged: 0 };
+// Reads every *.hook.json under hooksSrcDir once, warning-and-skipping any
+// descriptor missing a non-empty `targets` array (no fallback to "claude").
+function loadHookDescriptors(hooksSrcDir) {
+  if (!fs.existsSync(hooksSrcDir)) return [];
 
-  const descriptorPaths = findHookDescriptors(hooksSrcDir, hooksSrcDir);
-  if (descriptorPaths.length === 0) return { merged: 0 };
+  const descriptors = [];
+  for (const descriptorPath of findHookDescriptors(hooksSrcDir, hooksSrcDir)) {
+    const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+    if (!Array.isArray(descriptor.targets) || descriptor.targets.length === 0) {
+      console.warn(`  warning: no target for ${path.basename(descriptorPath)}, skipping`);
+      continue;
+    }
+    descriptors.push({ descriptor, descriptorPath });
+  }
+  return descriptors;
+}
+
+function mergeHookDescriptors(hookDescriptors, hooksSrcDir, targetRootDir, { dryRun }) {
+  const relevant = hookDescriptors.filter(({ descriptor }) => descriptor.targets.includes('claude'));
+  if (relevant.length === 0) return { merged: 0 };
 
   const settingsPath = path.join(targetRootDir, 'settings.json');
   let settings = {};
@@ -134,8 +151,7 @@ function mergeHookDescriptors(hooksSrcDir, targetRootDir, { dryRun }) {
   settings.hooks = settings.hooks || {};
 
   let merged = 0;
-  for (const descriptorPath of descriptorPaths) {
-    const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+  for (const { descriptor, descriptorPath } of relevant) {
     const { event, matcher, runtime } = descriptor;
     const scriptRelPath = path
       .join(path.relative(hooksSrcDir, path.dirname(descriptorPath)), descriptor.script)
@@ -169,6 +185,67 @@ function mergeHookDescriptors(hooksSrcDir, targetRootDir, { dryRun }) {
   return { merged };
 }
 
+// Writes one self-contained .github/hooks/<name>.json per descriptor opting
+// into the "github-copilot" target — Copilot has no central settings file to
+// merge into, unlike Claude. `cwd` points at the script's own directory
+// (mirroring GitHub's own documented scripts/ + cwd convention) since the
+// raw script is copied alongside every other hook asset regardless of target.
+function emitHooks(hookDescriptors, hooksSrcDir, targetRootDir, { dryRun }) {
+  const relevant = hookDescriptors.filter(({ descriptor }) => descriptor.targets.includes('github-copilot'));
+  if (relevant.length === 0) return { emitted: 0 };
+
+  const destDir = path.join(targetRootDir, 'hooks');
+  let emitted = 0;
+  for (const { descriptor, descriptorPath } of relevant) {
+    const { event, matcher, runtime, script } = descriptor;
+    const scriptRelDir = path.relative(hooksSrcDir, path.dirname(descriptorPath)).split(path.sep).join('/');
+    const hookName = path.basename(descriptorPath, '.hook.json');
+    const destPath = path.join(destDir, `${hookName}.json`);
+
+    const config = {
+      version: 1,
+      hooks: {
+        [event]: [
+          {
+            type: 'command',
+            cwd: scriptRelDir ? `.github/hooks/${scriptRelDir}` : '.github/hooks',
+            bash: `${runtime || 'python3'} ./${script}`,
+            matcher,
+          },
+        ],
+      },
+    };
+
+    if (dryRun) {
+      console.log(`  would write: ${path.relative(process.cwd(), destPath)}`);
+    } else {
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.writeFileSync(destPath, JSON.stringify(config, null, 2) + '\n');
+      console.log(`  wrote: ${path.relative(process.cwd(), destPath)}`);
+    }
+    emitted += 1;
+  }
+  return { emitted };
+}
+
+// Per-target divergence lives here: everything else in main() runs the same
+// shared copy/manifest loop for every target.
+const targetAdapters = {
+  claude: {
+    transformAgentFilename: (name) => name,
+    postCategory(category, hookDescriptors, srcDir, targetRootDir, args) {
+      if (category === 'hooks') mergeHookDescriptors(hookDescriptors, srcDir, targetRootDir, args);
+    },
+  },
+  'github-copilot': {
+    transformAgentFilename: (name) => name.replace(/\.md$/, '.agent.md'),
+    postCategory(category, hookDescriptors, srcDir, targetRootDir, args) {
+      if (category === 'hooks') emitHooks(hookDescriptors, srcDir, targetRootDir, args);
+    },
+  },
+};
+const defaultAdapter = { transformAgentFilename: (name) => name, postCategory() {} };
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const manifest = loadManifest();
@@ -191,6 +268,8 @@ Options:
 
   const selectedTargets = args.targets && args.targets.length ? args.targets : targetNames;
 
+  let hookDescriptors = null;
+
   for (const name of selectedTargets) {
     const target = manifest.targets[name];
     if (!target) {
@@ -199,6 +278,7 @@ Options:
       continue;
     }
 
+    const adapter = targetAdapters[name] || defaultAdapter;
     const targetRootDir = path.join(args.targetDir, target.dir);
     console.log(`\n== ${name} -> ${path.relative(process.cwd(), targetRootDir) || target.dir} ==`);
 
@@ -224,12 +304,14 @@ Options:
         continue;
       }
 
-      const { copied, skipped } = copyDir(srcDir, destDir, args);
+      const transformFilename = category === 'agents' ? adapter.transformAgentFilename : undefined;
+      const { copied, skipped } = copyDir(srcDir, destDir, { ...args, transformFilename });
       totalCopied += copied;
       totalSkipped += skipped;
 
-      if (category === 'hooks' && name === 'claude') {
-        mergeHookDescriptors(srcDir, targetRootDir, args);
+      if (category === 'hooks') {
+        if (hookDescriptors === null) hookDescriptors = loadHookDescriptors(srcDir);
+        adapter.postCategory(category, hookDescriptors, srcDir, targetRootDir, args);
       }
     }
 

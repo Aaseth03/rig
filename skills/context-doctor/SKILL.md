@@ -9,8 +9,8 @@ Keeps a repo's `.context/` system-map (built by the vendored `icm-architect`
 skill) both current and readably sized once the repo is under active
 development. This skill never edits anything under `skills/icm-architect/` —
 that folder is vendored and third-party. All behavior here lives in this
-skill and in two rig-owned hooks (`hooks/context/context-size-check.py`,
-`hooks/context-doctor/staleness-check.py`).
+skill and in two rig-owned hooks (`hooks/context-size/context-size-check.py`,
+`hooks/context-stale/staleness-check.py`).
 
 Every map this skill sets up is rooted at `.context/` at the project root —
 never `map/`. This is a deliberate standardization, not a default that can
@@ -39,7 +39,7 @@ continuing to the next slice.
 
 1. Invoke the `Skill` tool a second time, with:
    - `skill`: `"icm-architect"`
-   - `args`: `"Restructure mode, System map form. Root the map at .context/ at the project root — do not propose or use map/. Run the normal audit pipeline (inventory, catalog, nouns, verbs, effects) with its usual human-gated stops."`
+   - `args`: `"Restructure mode, System map form. Root the map at .context/ at the project root — do not propose or use map/. Run the normal audit pipeline (inventory, catalog, nouns, verbs, effects) with its usual human-gated stops. Make the repo wide AGENTS.md file at project root and not in the map root. Do not use CLAUDE.md, only AGENTS.md"`
 
    Wait for that skill's audit pipeline to complete, including all of its
    own human gates. Do not proceed to step 2 until `icm-architect` reports
@@ -103,9 +103,9 @@ any further action, until a person has read both.
 
 Only valid once `.context/` already exists (see branch selection above).
 
-1. Read `CONTEXT_SIZE_LOG.md` and `CONTEXT_STALE_LOG.md` at the project
-   root, if present. If neither exists or both are empty, report that
-   there is nothing to remediate and stop.
+1. Read `.context/logs/CONTEXT_SIZE_LOG.md` and
+   `.context/logs/CONTEXT_STALE_LOG.md`, if present. If neither exists or
+   both are empty, report that there is nothing to remediate and stop.
 
 2. For each entry in `CONTEXT_SIZE_LOG.md` (a card over the line
    threshold), open the file and bring it back under the threshold by
@@ -142,7 +142,7 @@ Only valid once `.context/` already exists (see branch selection above).
    waterfall touching the changed noun.
 
 4. As each entry is actually fixed, remove it from its log file — mirror
-   the same upsert/remove pattern `hooks/context/context-size-check.py`
+   the same upsert/remove pattern `hooks/context-size/context-size-check.py`
    already uses (rewrite the log with the fixed entry's line omitted,
    keep the rest, preserve the header).
 
